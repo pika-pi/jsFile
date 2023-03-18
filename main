@@ -1,0 +1,998 @@
+Maingame: [function(t, e, n) {
+        "use strict";
+        cc._RF.push(e, "653d6W+EJZKWrMDvlctxXNZ", "Maingame"),
+        Object.defineProperty(n, "__esModule", {
+            value: !0
+        });
+        var o, i = t("../request/SocketBase"), r = t("../GameData"), a = t("./Bullet/BulletManager"), s = t("./Fish/FishManager"), c = t("../ErrorMsg"), l = t("./Fish/Fish"), u = t("./Effect/EffectManager"), d = t("./Effect/EffectDropBonus"), h = t("./Effect/EffectDrop"), f = t("./Effect/EffectBonus"), p = t("./Effect/EffectWinWheel"), _ = t("./Effect/EffectBlackhole"), m = t("./AutoLockPage"), g = t("./Effect/EffectWarning"), y = t("../AudioCollector"), v = t("./Effect/EffectDropCoin"), b = t("../Localization/Language"), E = t("../Version"), C = t("./RulePage"), I = cc._decorator, w = I.ccclass, S = I.property;
+        (function(t) {
+            t[t.CM_IDLE = 0] = "CM_IDLE",
+            t[t.CM_FIRE_MANUAL = 1] = "CM_FIRE_MANUAL",
+            t[t.CM_LOCK_TARGET = 2] = "CM_LOCK_TARGET",
+            t[t.CM_LOCK_SETTING = 3] = "CM_LOCK_SETTING",
+            t[t.CM_LOCK_SETTING_INTERRUPT = 4] = "CM_LOCK_SETTING_INTERRUPT",
+            t[t.CM_LOCK_ANGLE = 5] = "CM_LOCK_ANGLE"
+        }
+        )(o || (o = {}));
+        var T = function(t) {
+            function e() {
+                var e = null !== t && t.apply(this, arguments) || this;
+                return e.playerNodeList = new Array,
+                e.m_PlayerTypes = ["NPCPlayer", "NPCPlayer", "NPCPlayer", "NPCPlayer"],
+                e.roomPanelPos = 420,
+                e.roomPanel = null,
+                e.roomButtons = new Array,
+                e.roomFrame = null,
+                e.roomSwitchWait = 3,
+                e.roomButtonLock = 10,
+                e.m_bRoomPanelOpened = !1,
+                e.bgList = new Array,
+                e.bgNode = null,
+                e.mapAnime = null,
+                e.mapPieces = new Array,
+                e.bonusItemCount = new Array,
+                e.bonusNum = null,
+                e.m_BonusItemCount = [0, 0, 0],
+                e.m_BonusDisplayItemCount = [0, 0, 0],
+                e.m_BonusCashOffset = new Map,
+                e.m_BonusCashSerial = 0,
+                e.m_ServerBonusCash = 0,
+                e.bagIcon = new Array,
+                e.dropIcon = new Array,
+                e.systemPanelPos = 944,
+                e.systemPanel = null,
+                e.m_bSystemPanelOpened = !1,
+                e.winWheelRegion = cc.rect(100, 100, 1080, 520),
+                e.wagersID = null,
+                e.energyMask = null,
+                e.energyButton = null,
+                e.energyAnimeItems = new Array,
+                e.energyAnime = null,
+                e.lockBtn = null,
+                e.lockBtnEffect = null,
+                e.torpedoBtn = null,
+                e.torpedoBtnEffect = null,
+                e.torpedoCost = null,
+                e.torpedoNameLabel = null,
+                e.autoBtn = null,
+                e.autoBtnEffect = null,
+                e.autoPage = null,
+                e.helpPageNode = null,
+                e.settingPageNode = null,
+                e.eventTipNode = null,
+                e.eventTipTime = null,
+                e.testSign = null,
+                e.hookTip = null,
+                e.msgWindow = null,
+                e.m_MsgCallback = null,
+                e.fadeMask = null,
+                e.m_CurrTouchID = -1,
+                e.m_FireMode = o.CM_IDLE,
+                e.m_FireTick = 0,
+                e.m_bFireLock = !1,
+                e.m_LockedPos = cc.Vec2.ZERO,
+                e.m_bPlayMapAnime = !1,
+                e.m_CheckTick = 0,
+                e.m_LockedType = null,
+                e.m_bAutoEnergy = !1,
+                e.m_bHasBetLimit = !1,
+                e.m_BetLimit = 0,
+                e.m_NextBG = null,
+                e.m_Timeout = 0,
+                e.m_EventKey = 0,
+                e.m_CashRollbackEvtKey = 0,
+                e.m_BonusItemTick = 0,
+                e.m_bHookRollbackValid = !1,
+                e.m_RoomLockTick = 0,
+                e.m_ManualTick = 0,
+                e.m_BulletFireDur = 0,
+                e.m_MaxEnergyVal = 0,
+                e.m_EnergyVal = 0,
+                e.m_ChangeBetEventKey = 0,
+                e
+            }
+            var n;
+            return __extends(e, t),
+            n = e,
+            e.prototype.onLoad = function() {
+                n.sm_Instance = this,
+                this.updateBG(),
+                this.updateMap(),
+                this.updateBonusItem(),
+                this.clearBonusCashOffset(),
+                this.setBonusCash(0),
+                this.testSign.active = "TESTUSER" == r.default.sm_Instance.m_Account,
+                this.version.string = "V" + E.default.Number,
+                this.m_MaxEnergyVal = r.default.sm_Instance.m_BetLevels[r.default.sm_Instance.m_BetLevels.length - 1] * r.default.sm_Instance.energyBase,
+                this.m_BulletFireDur = r.default.sm_Instance.fireTick,
+                this.roomPanel.parent.parent.active = this.torpedoBtn.node.active = this.torpedoNameLabel.active = this.bonusNum.node.parent.active = !r.default.sm_Instance.m_bDao
+            }
+            ,
+            e.prototype.start = function() {
+                var t = this;
+                u.default.sm_Instance.m_ShakeFunc = function() {
+                    return t.bgNode.getComponent(cc.Animation).play()
+                }
+                ,
+                i.default.sm_Instance.listen("TABLE_USER_INFO", function(e) {
+                    for (var n = 1; n <= 4; ++n) {
+                        var o = "NPCPlayer"
+                          , i = e.tablePosNickName[n.toString()];
+                        if (cc.isValid(i)) {
+                            o = e.tablePosStatus[n.toString()] ? "AIPlayer" : n == r.default.sm_Instance.m_TablePos ? "Player" : "NPCPlayer";
+                            var a = t.shiftPlayerToType(o, n - 1);
+                            if (s.default.sm_Instance.initLockIcon("Player" == o, n),
+                            a.init(),
+                            a.setEmpty(!1),
+                            a.setName(i),
+                            a.setCash(e.tablePosPoint[n.toString()]),
+                            "Player" == o) {
+                                var c = !t.torpedoBtnEffect.active;
+                                a.setWeaponType(c ? t.getSelfPlayer().getNormalWeaponType() : r.WeaponType.WEAPON_TORPEDO)
+                            } else
+                                a.setWeaponType(r.WeaponType.WEAPON_NORMAL_1)
+                        } else
+                            (a = t.shiftPlayerToType(o, n - 1)).init(),
+                            a.setEmpty(!0),
+                            a.setName("")
+                    }
+                    r.default.sm_Instance.m_bNeedFormation && (r.default.sm_Instance.m_bNeedFormation = !1,
+                    s.default.sm_Instance.startFormation(r.default.sm_Instance.m_FormationId, r.default.sm_Instance.m_FormationFishId, r.default.sm_Instance.m_FormationTime))
+                }),
+                i.default.sm_Instance.listen("USER_LEAVE_TABLE", function(t) {
+                    r.default.sm_Instance.m_Cash = t.userPoint,
+                    i.default.sm_Instance.clearMsgQueue(),
+                    r.default.sm_Instance.m_bExitLock = !1,
+                    cc.director.loadScene("lobby")
+                }),
+                i.default.sm_Instance.listen("USER_SHOT", function(e) {
+                    if (e.tableId == r.default.sm_Instance.m_TableId) {
+                        var n = t.getValidPlayer(e.userPos - 1);
+                        n.doFire(e.userPoint, e.bulletKind, e.bulletId, e.betLevel, e.fortAngle, e.lockFishId, e.tableId),
+                        e.userPos == r.default.sm_Instance.m_TablePos && (r.default.sm_Instance.m_LockedCash = e.userReservePoint,
+                        n.setLockedCash(),
+                        t.setBonusCash(e.personalPoolValue * r.default.sm_Instance.m_CashScale)),
+                        3 == e.bulletKind && (t.m_bHookRollbackValid = !0,
+                        e.userPos == r.default.sm_Instance.m_TablePos ? t.scheduleOnce(function() {
+                            t.m_bFireLock = !1,
+                            t.m_bHookRollbackValid && (t.torpedoBtnEffect.active ? n.setWeaponType(r.WeaponType.WEAPON_TORPEDO) : n.setWeaponType(n.getNormalWeaponType()))
+                        }, 1) : t.scheduleOnce(function() {
+                            t.m_bHookRollbackValid && n.setWeaponType(n.m_PrevWeaponType)
+                        }, 1))
+                    }
+                }),
+                i.default.sm_Instance.listen("CLEAR_BULLET", function(t) {
+                    a.default.sm_Instance.clearBullet(t)
+                }),
+                i.default.sm_Instance.listen("BOSS_COME", function(e) {
+                    var n = r.EffectType.EFFECT_WARNING_BLUE;
+                    switch (e.fishDataId) {
+                    case 29:
+                        n = r.EffectType.EFFECT_WARNING_PURPLE;
+                        break;
+                    case 30:
+                    case 31:
+                        n = r.EffectType.EFFECT_WARNING_RED,
+                        t.eventTipNode.active = !1
+                    }
+                    var o = u.default.sm_Instance.addEffect(n, 2);
+                    y.default.sm_Instance.playSE(y.default.sm_Instance.warningSE);
+                    var i = r.default.sm_Instance.getFishName(e.fishDataId) + b.default.Instance.GetText("WarningComingText");
+                    o.getComponent(g.default).extraInit(i, e.fishDataId)
+                }),
+                i.default.sm_Instance.listen("FORMATION_COME", function(e) {
+                    y.default.sm_Instance.playSE(y.default.sm_Instance.stageSwitchWaveSE),
+                    s.default.sm_Instance.clearFish(!0),
+                    r.default.sm_Instance.m_BGId = e.gameMap;
+                    var n = u.default.sm_Instance.addDelayEffect(3, r.EffectType.EFFECT_WAVE, 1).getChildByName("bg");
+                    t.m_NextBG = cc.instantiate(t.bgList[e.gameMap - 1]),
+                    n.addChild(t.m_NextBG),
+                    t.m_NextBG.position = cc.v2(960, 0),
+                    t.m_NextBG.scale = 1.5,
+                    t.node.runAction(cc.sequence(cc.delayTime(3.84), cc.callFunc(function() {
+                        t.updateBG(),
+                        n.setContentSize(new cc.Size(1920,1080))
+                    }))),
+                    s.default.sm_Instance.startFormation(parseInt(e.fileId), e.appearFishId, e.formationNowTime - 5)
+                }),
+                i.default.sm_Instance.listen("FISH_APPEAR", function(e, n) {
+                    return t.popFish(e, !1, n)
+                }),
+                i.default.sm_Instance.listen("BOSS_APPEAR", function(e, n) {
+                    return t.popFish(e, !0, n)
+                }),
+                i.default.sm_Instance.listen("CATCH_FISH", function(e) {
+                    var n = t.getValidPlayer(e.userPos - 1);
+                    n.canUpdateEnergy() && (t.m_EnergyVal = e.userhookValueValue,
+                    t.updateEnergy(),
+                    r.default.sm_Instance.m_LockedCash = e.userReservePoint,
+                    n.setLockedCash());
+                    var o = 3 == e.bulletKind
+                      , i = 0;
+                    t.m_bPlayMapAnime || (t.m_bPlayMapAnime = r.default.sm_Instance.m_MapCount > e.totalMapNum),
+                    r.default.sm_Instance.m_MapCount = e.totalMapNum;
+                    for (var a = -1, c = cc.Vec2.ZERO, m = null, g = new Map, b = !1, E = !1, C = !1, I = 0; I < e.deadFish.length; ++I) {
+                        var w = e.deadFish[I]
+                          , S = s.default.sm_Instance.getFish(w);
+                        if (cc.isValid(S)) {
+                            var T = S.getComponent(l.default).getType()
+                              , P = S.getComponent(s.default.sm_Instance.getActualTypename(T));
+                            T >= 21 && T <= 23 && (a = T,
+                            c = r.default.convertToGameRegionPosition(S)),
+                            23 == T && (m = P),
+                            T >= 18 && T <= 31 && (C = !0),
+                            T <= 11 ? b = !0 : E = !0,
+                            g.set(w, P)
+                        }
+                    }
+                    b && y.default.sm_Instance.playSE(y.default.sm_Instance.smallFishKOSE),
+                    E && y.default.sm_Instance.playSE(y.default.sm_Instance.bigFishKOSE),
+                    C && u.default.sm_Instance.playShake();
+                    var L = e.userPos == r.default.sm_Instance.m_TablePos
+                      , k = null;
+                    switch (a) {
+                    case 21:
+                        g.forEach(function(t) {
+                            t.setCatched(!1)
+                        }),
+                        (k = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_BOMB_21, 1)).position = cc.v2(0, c.y),
+                        y.default.sm_Instance.playSE(y.default.sm_Instance.bomb21SE),
+                        t.bgNode.getComponent(cc.Animation).play();
+                        break;
+                    case 22:
+                        g.forEach(function(t) {
+                            t.setCatched(!1)
+                        }),
+                        (k = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_BOMB_22, 1)).position = cc.Vec2.ZERO,
+                        y.default.sm_Instance.playSE(y.default.sm_Instance.bomb22SE),
+                        t.bgNode.getComponent(cc.Animation).play();
+                        break;
+                    case 23:
+                        var A = m.getCatchNet().getComponent(cc.CircleCollider);
+                        (k = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_BOMB_23, 0)).position = r.default.convertToGameRegionPosition(m.node, A.offset),
+                        g.forEach(function(t) {
+                            23 != t.getType() ? (t.setCatched(!0),
+                            k.getComponent(_.default).addFish(t.node)) : (t.setDontLock(!0),
+                            t.setCatched(!1))
+                        }),
+                        y.default.sm_Instance.playSE(y.default.sm_Instance.bomb23SE);
+                        break;
+                    default:
+                        g.forEach(function(t) {
+                            return t.setCatched(!1)
+                        })
+                    }
+                    null != k && (r.default.sm_Instance.m_bDoEffectFade && !L ? (k.opacity = r.default.sm_Instance.otherColor.getA(),
+                    k.color = cc.color(r.default.sm_Instance.otherColor.getR(), r.default.sm_Instance.otherColor.getG(), r.default.sm_Instance.otherColor.getB())) : (k.opacity = 255,
+                    k.color = cc.color(255, 255, 255)));
+                    var F = n.getInfoAnchorPos()
+                      , R = 0
+                      , B = !1
+                      , O = !1;
+                    for (var N in e.rewardData) {
+                        var M = e.rewardData[N]
+                          , D = s.default.sm_Instance.getFish(parseInt(N));
+                        if (cc.isValid(D)) {
+                            var x = D.position;
+                            R = 0;
+                            for (var U = 0; U < M.hitWinList.length; ++U)
+                                (j = u.default.sm_Instance.addDelayEffect(.1 * R, r.EffectType.EFFECT_DROP_BONUS_BAG, 2)).getComponent(d.default).extraInit(n, L, t.bagIcon[1], M.hitWinList[U][1], F),
+                                j.position = x,
+                                ++R;
+                            var z = parseInt(N);
+                            if (g.has(parseInt(N))) {
+                                var G = M.killData
+                                  , H = g.get(z).getType();
+                                if (0 != G.killWin && (24 != z && 25 != z && ((j = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_DROP_BONUS_COIN, 1)).getComponent(v.default).extraInit(n, L, H, G.killWin, F),
+                                j.position = x,
+                                ++R),
+                                !o && H >= 11 && ((j = u.default.sm_Instance.addEffect(H >= 26 ? r.EffectType.EFFECT_BOSS_WHEEL : r.EffectType.EFFECT_WIN_WHEEL, 1)).getComponent(p.default).extraInit(L, H, G.killWin),
+                                n.addWinWheel(j.getComponent(p.default)),
+                                B = !0,
+                                O = O || H >= 11 && H <= 23),
+                                i += G.killWin),
+                                cc.isValid(G.wheelData.odds)) {
+                                    n.doRoller(L, G.wheelData.odds, G.wheelData.win);
+                                    var W = r.default.sm_Instance.rollerTime + r.default.sm_Instance.rollerWait;
+                                    if (L && y.default.sm_Instance.playSE(y.default.sm_Instance.wheelSE),
+                                    0 == G.wheelData.odds)
+                                        L && ((j = u.default.sm_Instance.addDelayEffect(W, r.EffectType.EFFECT_TREASURE, 2)).getComponent(f.default).extraInit(n, G.wheelData.win, 0, F, function() {}),
+                                        j.position = cc.Vec2.ZERO);
+                                    else {
+                                        (j = u.default.sm_Instance.addDelayEffect(W, H >= 26 ? r.EffectType.EFFECT_BOSS_WHEEL : r.EffectType.EFFECT_WIN_WHEEL, 2)).getComponent(p.default).extraInit(L, H, G.wheelData.win);
+                                        var V = n.getRollerAnchorPos().add(cc.v2(640, 360));
+                                        V.x = Math.max(t.winWheelRegion.xMin, Math.min(t.winWheelRegion.xMax, V.x)),
+                                        V.y = Math.max(t.winWheelRegion.yMin, Math.min(t.winWheelRegion.yMax, V.y)),
+                                        j.position = V.sub(cc.v2(640, 360)),
+                                        B = !0,
+                                        O = O || H >= 11 && H <= 23
+                                    }
+                                }
+                                if (e.userPos == r.default.sm_Instance.m_TablePos) {
+                                    var j, K = e.personalItemNum;
+                                    t.m_BonusItemCount = [K.monkey, K.peguin, K.shark],
+                                    0 != G.dropItem && ((j = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_DROP, 1)).getComponent(h.default).extraInit(!0, t.dropIcon[G.dropItem], r.default.convertToGameRegionPosition(t.bonusItemCount[G.dropItem - 1].node), function() {
+                                        return t.updateBonusItem()
+                                    }),
+                                    j.position = x)
+                                }
+                                G.hasMap && ((j = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_DROP, 1)).getComponent(h.default).extraInit(!0, t.dropIcon[0], t.mapAnime.node.position, function() {
+                                    return t.updateMap()
+                                }),
+                                j.position = x)
+                            }
+                        }
+                    }
+                    if (o && 0 != i && t.scheduleOnce(function() {
+                        if (cc.isValid(n)) {
+                            var t = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_HOOK_WHEEL, 1);
+                            t.getComponent(p.default).extraInit(L, 0, i),
+                            n.addWinWheel(t.getComponent(p.default)),
+                            y.default.sm_Instance.playSE(y.default.sm_Instance.wheelSE)
+                        }
+                    }, r.default.sm_Instance.delayHookWheel),
+                    B && y.default.sm_Instance.playSE(O ? y.default.sm_Instance.spWheelSE : y.default.sm_Instance.wheelSE),
+                    e.userPos == r.default.sm_Instance.m_TablePos) {
+                        var Y = function(o) {
+                            var i = u.default.sm_Instance.addEffect(r.EffectType.EFFECT_TREASURE, 1)
+                              , a = t.pushBonusCashOffset(e.personalRewards[o].win);
+                            i.getComponent(f.default).extraInit(n, e.personalRewards[o].win, e.personalRewards[o].personalType, F, function() {
+                                return t.popBonusCashOffset(a)
+                            }),
+                            i.position = cc.Vec2.ZERO
+                        };
+                        for (I = 0; I < e.personalRewards.length; ++I)
+                            Y(I);
+                        t.setBonusCash(e.personalPoolValue * r.default.sm_Instance.m_CashScale)
+                    }
+                    n.setCash(e.userPoint)
+                }),
+                i.default.sm_Instance.listen("UPDATE_WAGERS_ID", function(e) {
+                    r.default.sm_Instance.m_WagersId = e.wagersId,
+                    t.wagersID.string = cc.isValid(r.default.sm_Instance.m_WagersId) ? r.default.sm_Instance.m_WagersId.toString() : ""
+                }),
+                i.default.sm_Instance.listen("SEND_ERROR", function(t) {
+                    switch (t.err) {
+                    case 1:
+                        c.default.sm_Instance.showErrorMsg(b.default.Instance.GetText("dao_3"), function() {
+                            window.pomelo.disconnect(),
+                            c.default.sm_Instance.setBlock()
+                        });
+                        break;
+                    case 2:
+                    case 3:
+                        window.pomelo.disconnect(),
+                        c.default.sm_Instance.showLockError();
+                        break;
+                    default:
+                        c.default.sm_Instance.showErrorMsg(b.default.Instance.GetText(["vy_4", "vy_5"][t.err - 4]), function() {
+                            window.pomelo.disconnect(),
+                            c.default.sm_Instance.setBlock()
+                        })
+                    }
+                }),
+                i.default.sm_Instance.listen("UPDATE_RESERVE", function(e) {
+                    var n = t.getSelfPlayer();
+                    r.default.sm_Instance.m_LockedCash = e.balance,
+                    n.setLockedCash()
+                }),
+                this.m_EventKey = r.default.addEvent("LASER_VALUE_ERROR", function() {
+                    var e = t.getSelfPlayer();
+                    t.torpedoBtnEffect.active ? e.setWeaponType(r.WeaponType.WEAPON_TORPEDO) : e.setWeaponType(e.getNormalWeaponType()),
+                    t.m_bFireLock = !1,
+                    t.m_EnergyVal = 0,
+                    t.updateEnergy()
+                }),
+                this.m_CashRollbackEvtKey = r.default.addEvent("CASH_ROLLBACK", function(e) {
+                    var n = e[0];
+                    t.getSelfPlayer().setCash(n),
+                    t.getSelfPlayer().setLockedCash()
+                }),
+                this.m_ChangeBetEventKey = r.default.addEvent("CHANGE_BET", function() {
+                    t.updateEnergy()
+                }),
+                y.default.sm_Instance.playBGM(y.default.sm_Instance.stageBGM),
+                this.wagersID.string = cc.isValid(r.default.sm_Instance.m_WagersId) ? r.default.sm_Instance.m_WagersId.toString() : "",
+                this.m_CheckTick = 0,
+                r.default.sm_Instance.m_IdleTick = 0,
+                this.roomFrame.position = this.roomButtons[r.default.sm_Instance.m_LobbyID - (r.default.sm_Instance.m_LobbyID > 3 ? 2 : 1)].position,
+                this.node.on(cc.Node.EventType.TOUCH_START, function(e) {
+                    return t.onMouseDown(e)
+                }),
+                this.node.on(cc.Node.EventType.TOUCH_MOVE, function(e) {
+                    return t.onMouseMove(e)
+                }),
+                this.node.on(cc.Node.EventType.TOUCH_END, function(e) {
+                    return t.onMouseUp(e)
+                }),
+                this.node.on(cc.Node.EventType.TOUCH_CANCEL, function(e) {
+                    return t.onMouseUp(e)
+                })
+            }
+            ,
+            e.prototype.onDestroy = function() {
+                r.default.removeEvent("LASER_VALUE_ERROR", this.m_EventKey),
+                r.default.removeEvent("CASH_ROLLBACK", this.m_CashRollbackEvtKey),
+                r.default.removeEvent("CHANGE_BET", this.m_ChangeBetEventKey),
+                i.default.sm_Instance.listen("TABLE_USER_INFO", null),
+                i.default.sm_Instance.listen("USER_LEAVE_TABLE", null),
+                i.default.sm_Instance.listen("USER_SHOT", null),
+                i.default.sm_Instance.listen("CLEAR_BULLET", null),
+                i.default.sm_Instance.listen("BOSS_COME", null),
+                i.default.sm_Instance.listen("FISH_APPEAR", null),
+                i.default.sm_Instance.listen("BOSS_APPEAR", null),
+                i.default.sm_Instance.listen("CATCH_FISH", null),
+                i.default.sm_Instance.listen("UPDATE_WAGERS_ID", null),
+                i.default.sm_Instance.listen("UPDATE_RESERVE", null),
+                cc.audioEngine.stopAllEffects()
+            }
+            ,
+            e.prototype.update = function(t) {
+                var e = this;
+                r.default.sm_Instance.m_IdleTick += t,
+                r.default.sm_Instance.m_IdleTick >= r.default.sm_Instance.idleTime && (i.default.sm_Instance.m_DisconnetMessage = "NO_BET",
+                window.pomelo.disconnect());
+                var n = this.m_bRoomPanelOpened ? this.roomPanelPos : 0;
+                this.roomPanel.position = cc.v2(.5 * (n + this.roomPanel.position.x), this.roomPanel.position.y),
+                n = this.m_bSystemPanelOpened ? 640 : this.systemPanelPos,
+                this.systemPanel.position = cc.v2(.5 * (n + this.systemPanel.position.x), this.systemPanel.position.y);
+                for (var a = 0; a < this.bonusItemCount.length; ++a)
+                    this.bonusItemCount[a].string = this.m_BonusDisplayItemCount[a].toString();
+                if (this.m_RoomLockTick > 0 && (this.m_RoomLockTick -= t,
+                this.m_RoomLockTick <= this.roomButtonLock && (r.default.sm_Instance.m_bExitLock = !1,
+                r.default.sm_Instance.m_bWaitFlagSwitched = !0),
+                this.m_RoomLockTick <= 0))
+                    for (this.m_RoomLockTick = 0,
+                    a = 0; a < this.roomButtons.length; ++a)
+                        this.roomButtons[a].getComponent(cc.Button).interactable = !0;
+                if (r.default.sm_Instance.m_bCheckEventFish && (r.default.sm_Instance.m_bCheckEventFish = !1,
+                i.default.sm_Instance.request("fish_pirate.gameHandler.getEventBossStatus", null, function(t) {
+                    if (t.status[((r.default.sm_Instance.m_LobbyID - 1) % 3 + 1).toString()]) {
+                        var n = t.appearTime.split(":")
+                          , o = parseInt(n[0])
+                          , i = parseInt(n[1]);
+                        (i = 60 * o + i + 240 - (new Date).getTimezoneOffset()) < 0 ? i += 1440 : i > 1440 && (i -= 1440),
+                        o = Math.floor(i / 60),
+                        i %= 60,
+                        e.eventTipTime.string = r.default.prefixInt(o, 2) + ":" + r.default.prefixInt(i, 2),
+                        e.eventTipNode.active = !0
+                    } else
+                        e.eventTipNode.active = !1
+                })),
+                this.m_ManualTick > 0 && (this.m_ManualTick = Math.max(0, this.m_ManualTick - t)),
+                o.CM_IDLE != this.m_FireMode) {
+                    if (r.WeaponType.WEAPON_HOOK == this.getSelfPlayer().getWeaponType()) {
+                        if (this.m_Timeout += t,
+                        !(this.m_Timeout >= 5))
+                            return;
+                        var c = this.getSelfPlayer();
+                        this.torpedoBtnEffect.active ? c.setWeaponType(r.WeaponType.WEAPON_TORPEDO) : c.setWeaponType(c.getNormalWeaponType()),
+                        this.m_bFireLock = !1,
+                        this.m_EnergyVal = this.m_MaxEnergyVal,
+                        this.updateEnergy()
+                    }
+                    if (this.m_CheckTick += t,
+                    this.m_FireTick += t,
+                    !(this.m_FireTick < this.m_BulletFireDur))
+                        switch (this.m_FireTick -= this.m_BulletFireDur,
+                        this.m_FireMode) {
+                        case o.CM_FIRE_MANUAL:
+                            this.doFireRequest();
+                            break;
+                        case o.CM_LOCK_SETTING:
+                            if ((-1 == s.default.sm_Instance.getLockedFishID(r.default.sm_Instance.m_TablePos) || this.m_CheckTick >= r.default.sm_Instance.lockCheckDuration) && (this.m_CheckTick = 0,
+                            s.default.sm_Instance.setSelfLockedFishIDByType(this.getSelfPlayer().node, this.m_LockedType),
+                            -1 == s.default.sm_Instance.getLockedFishID(r.default.sm_Instance.m_TablePos)))
+                                return;
+                            if (this.m_bAutoEnergy && this.getEnergyProgress() >= 1) {
+                                this.onEnergyBtnClicked(null, null);
+                                break
+                            }
+                            null != (l = s.default.sm_Instance.getLockedFishPos(r.default.sm_Instance.m_TablePos)) && (this.m_LockedPos = l,
+                            this.doFireRequest(),
+                            this.checkAutoBetLimitReached());
+                            break;
+                        case o.CM_LOCK_TARGET:
+                            -1 != s.default.sm_Instance.getLockedFishID(r.default.sm_Instance.m_TablePos) ? null != (l = s.default.sm_Instance.getLockedFishPos(r.default.sm_Instance.m_TablePos)) && (this.m_LockedPos = l,
+                            Math.abs(this.m_LockedPos.x) <= 640 && Math.abs(this.m_LockedPos.y) <= 360 && this.doFireRequest()) : s.default.sm_Instance.updateManualLockType(this.getSelfPlayer().node);
+                            break;
+                        case o.CM_LOCK_SETTING_INTERRUPT:
+                            var l;
+                            if (-1 == s.default.sm_Instance.getLockedFishID(r.default.sm_Instance.m_TablePos))
+                                s.default.sm_Instance.setLockAngle(!1, cc.Vec2.ZERO),
+                                this.m_FireMode = o.CM_LOCK_SETTING;
+                            else if (null != (l = s.default.sm_Instance.getLockedFishPos(r.default.sm_Instance.m_TablePos)) && (this.m_LockedPos = l,
+                            Math.abs(this.m_LockedPos.x) <= 640 && Math.abs(this.m_LockedPos.y) <= 360)) {
+                                if (this.m_bAutoEnergy && this.getEnergyProgress() >= 1) {
+                                    this.onEnergyBtnClicked(null, null);
+                                    break
+                                }
+                                this.doFireRequest(),
+                                this.checkAutoBetLimitReached()
+                            }
+                            break;
+                        case o.CM_LOCK_ANGLE:
+                            if (this.m_bAutoEnergy && this.getEnergyProgress() >= 1) {
+                                this.onEnergyBtnClicked(null, null);
+                                break
+                            }
+                            if (Math.abs(this.m_LockedPos.x) > 640 || Math.abs(this.m_LockedPos.y) > 360)
+                                break;
+                            this.doFireRequest(),
+                            this.checkAutoBetLimitReached()
+                        }
+                }
+            }
+            ,
+            e.prototype.updateEnergy = function() {
+                if (!this.m_bFireLock) {
+                    var t = this.getEnergyProgress()
+                      , e = this.energyButton.getContentSize();
+                    if (this.energyMask.setContentSize(cc.size(e.width, e.height * t)),
+                    t >= 1) {
+                        if (!this.energyAnime.getAnimationState("energy_button_full").isPlaying && !this.energyAnime.getAnimationState("energy_button_loop").isPlaying) {
+                            y.default.sm_Instance.playSE(y.default.sm_Instance.energySE);
+                            for (var n = 0; n < this.energyAnimeItems.length; ++n)
+                                this.energyAnimeItems[n].active = !0;
+                            this.energyAnime.play("energy_button_full")
+                        }
+                    } else {
+                        for (n = 0; n < this.energyAnimeItems.length; ++n)
+                            this.energyAnimeItems[n].active = !1;
+                        this.energyAnime.stop()
+                    }
+                }
+            }
+            ,
+            e.prototype.onToggleRoomPanelClicked = function() {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                this.m_bRoomPanelOpened = !this.m_bRoomPanelOpened
+            }
+            ,
+            e.prototype.onToggleSystemPanelClicked = function() {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                this.m_bSystemPanelOpened = !this.m_bSystemPanelOpened
+            }
+            ,
+            e.prototype.onRoomChangeClicked = function(t, e) {
+                var n = this;
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                r.default.sm_Instance.m_bExitLock || (this.m_MsgCallback = function() {
+                    r.default.sm_Instance.m_IdleTick = 0;
+                    var o = r.default.sm_Instance.m_LobbyID;
+                    r.default.sm_Instance.m_LobbyID = parseInt(e),
+                    r.default.sm_Instance.m_BetLevelRecord = r.default.sm_Instance.defaultBet[r.default.sm_Instance.m_LobbyID - 1],
+                    r.default.sm_Instance.m_bExitLock = !0,
+                    n.clearAutoFireState(),
+                    s.default.sm_Instance.setLockAngle(!1, cc.Vec2.ZERO),
+                    n.lockBtnEffect.active = !1,
+                    n.m_BulletFireDur = r.default.sm_Instance.fireTick,
+                    n.torpedoBtnEffect.active = !1,
+                    n.getSelfPlayer().setWeaponType(n.getSelfPlayer().getNormalWeaponType()),
+                    n.roomFrame.position = t.getCurrentTarget().position;
+                    for (var l = 0; l < n.roomButtons.length; ++l)
+                        n.roomButtons[l].getComponent(cc.Button).interactable = !1;
+                    for (n.m_RoomLockTick = n.roomSwitchWait + n.roomButtonLock,
+                    r.default.sm_Instance.m_bWaitFlagSwitched = !1,
+                    c.default.sm_Instance.showWaitingMsg(b.default.Instance.GetText("WarningChangeRoom"), function() {}),
+                    l = 0; l < n.playerNodeList.length; ++l) {
+                        var d = n.getValidPlayer(l);
+                        if (null != d && cc.isValid(d.rollerNode)) {
+                            d.rollerNode.active = !1;
+                            for (var h = 0; h < d.rollerTarget.length; ++h)
+                                d.rollerTarget[h].stopAllActions()
+                        }
+                    }
+                    n.m_bHookRollbackValid = !1;
+                    var f = new function() {
+                        this.lobbyId = 0,
+                        this.isVip = !1
+                    }
+                    ;
+                    f.lobbyId = (r.default.sm_Instance.m_LobbyID - 1) % 3 + 1,
+                    f.isVip = r.default.sm_Instance.m_LobbyID > 3,
+                    i.default.sm_Instance.request("fish_pirate.gameHandler.joinTable", f, function() {
+                        i.default.sm_Instance.listen("USER_JOIN_ERROR", function(t) {
+                            i.default.sm_Instance.listen("USER_JOIN_TABLE", null),
+                            i.default.sm_Instance.listen("USER_JOIN_ERROR", null),
+                            i.default.sm_Instance.listen("SEND_ERROR", null),
+                            r.default.sm_Instance.m_LobbyID = o,
+                            r.default.sm_Instance.m_BetLevelRecord = r.default.sm_Instance.defaultBet[r.default.sm_Instance.m_LobbyID - 1],
+                            n.roomFrame.position = n.roomButtons[r.default.sm_Instance.m_LobbyID - (r.default.sm_Instance.m_LobbyID > 3 ? 2 : 1)].position,
+                            r.default.sm_Instance.m_bWaitFlagSwitched = !0,
+                            r.default.sm_Instance.m_bExitLock = !1,
+                            n.m_RoomLockTick = 0;
+                            for (var e = 0; e < n.roomButtons.length; ++e)
+                                n.roomButtons[e].getComponent(cc.Button).interactable = !0;
+                            c.default.sm_Instance.showErrorMsg(b.default.Instance.GetText("USER_JOIN_ERROR"), function() {
+                                i.default.sm_Instance.clearMsgQueue(),
+                                r.default.sm_Instance.m_bExitLock = !1,
+                                r.default.sm_Instance.m_Cash = t.userPoint,
+                                cc.director.loadScene("lobby")
+                            })
+                        }),
+                        i.default.sm_Instance.listen("USER_JOIN_TABLE", function(t) {
+                            i.default.sm_Instance.listen("USER_JOIN_TABLE", null),
+                            i.default.sm_Instance.listen("USER_JOIN_ERROR", null),
+                            r.default.sm_Instance.m_TableId = t.tableID,
+                            r.default.sm_Instance.m_TablePos = t.tablePos,
+                            r.default.sm_Instance.setupBetLevels(f.lobbyId - 1),
+                            n.fadeMask.active = !0,
+                            n.fadeMask.runAction(cc.sequence(cc.fadeIn(.5 * r.default.sm_Instance.roomChangeFadeDur), cc.callFunc(function() {
+                                a.default.sm_Instance.checkBullet(),
+                                u.default.sm_Instance.clearAllEffect(),
+                                s.default.sm_Instance.clearFish(),
+                                s.default.sm_Instance.clearFormation(),
+                                i.default.sm_Instance.clearMsgQueue("FISH_APPEAR"),
+                                i.default.sm_Instance.clearMsgQueue("BOSS_APPEAR"),
+                                r.default.sm_Instance.m_Cash = t.userPoint,
+                                r.default.sm_Instance.m_LockedCash = t.userReservePoint,
+                                r.default.sm_Instance.m_BGId = t.gameMap,
+                                r.default.sm_Instance.m_MapCount = t.totalMapNum,
+                                n.m_bPlayMapAnime = !1,
+                                n.updateMap(),
+                                r.default.sm_Instance.m_WagersId = t.wagersId,
+                                n.wagersID.string = cc.isValid(r.default.sm_Instance.m_WagersId) ? r.default.sm_Instance.m_WagersId.toString() : "",
+                                t.resultFormation.formation_come && s.default.sm_Instance.startFormation(parseInt(t.resultFormation.fileId), t.resultFormation.appearFishId, t.resultFormation.formationNowTime - 5),
+                                n.updateBG(),
+                                n.updateMap(),
+                                n.m_BonusItemCount = [0, 0, 0],
+                                n.clearBonusCashOffset(),
+                                n.setBonusCash(0),
+                                n.updateBonusItem(),
+                                n.m_EnergyVal = 0,
+                                n.updateEnergy(),
+                                r.default.sm_Instance.m_bCheckEventFish = !0
+                            }), cc.fadeOut(.5 * r.default.sm_Instance.roomChangeFadeDur), cc.callFunc(function() {
+                                n.fadeMask.active = !1
+                            })))
+                        })
+                    })
+                }
+                ,
+                0 == this.m_EnergyVal ? this.m_MsgCallback() : this.msgWindow.active = !0)
+            }
+            ,
+            e.prototype.onEnergyBtnClicked = function() {
+                this.getEnergyProgress() < 1 ? this.hookTip.opacity = 255 : (this.getSelfPlayer().setWeaponType(r.WeaponType.WEAPON_HOOK),
+                this.m_EnergyVal = 0,
+                this.updateEnergy(),
+                this.doFireRequest(!1))
+            }
+            ,
+            e.prototype.onLockBtnClicked = function() {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                o.CM_LOCK_TARGET == this.m_FireMode ? (this.m_FireMode = o.CM_IDLE,
+                this.lockBtnEffect.active = !1,
+                s.default.sm_Instance.clearManualLock()) : (this.m_FireMode = o.CM_LOCK_TARGET,
+                this.lockBtnEffect.active = !0,
+                this.autoBtnEffect.active = !1),
+                s.default.sm_Instance.setLockAngle(!1, cc.Vec2.ZERO),
+                s.default.sm_Instance.clearLockState(r.default.sm_Instance.m_TablePos)
+            }
+            ,
+            e.prototype.onTorpedoBtnClicked = function() {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE);
+                var t = this.torpedoBtnEffect.active;
+                this.torpedoCost.node.parent.active = !t,
+                this.m_BulletFireDur = t ? r.default.sm_Instance.fireTick : r.default.sm_Instance.torpedoFireTick,
+                this.torpedoBtnEffect.active = !t,
+                this.getSelfPlayer().setWeaponType(t ? this.getSelfPlayer().getNormalWeaponType() : r.WeaponType.WEAPON_TORPEDO)
+            }
+            ,
+            e.prototype.onAutoBtnClicked = function() {
+                var t = this;
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                s.default.sm_Instance.clearLockState(r.default.sm_Instance.m_TablePos),
+                o.CM_LOCK_TARGET == this.m_FireMode && (this.lockBtnEffect.active = !1,
+                s.default.sm_Instance.clearManualLock()),
+                this.m_FireMode = o.CM_IDLE,
+                this.autoBtnEffect.active = !1,
+                this.clearAutoFireState(),
+                this.autoPage.show(function(e, n, o, i, r) {
+                    return t.setupAutoFire(e, n, o, i, r)
+                })
+            }
+            ,
+            e.prototype.onExitBtnClicked = function() {
+                var t = this;
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                r.default.sm_Instance.m_bExitLock || (this.m_MsgCallback = function() {
+                    r.default.sm_Instance.m_bExitLock = !0,
+                    t.m_FireMode = o.CM_IDLE,
+                    t.lockBtnEffect.active = !1,
+                    t.autoBtnEffect.active = !1,
+                    s.default.sm_Instance.clearManualLock(),
+                    i.default.sm_Instance.request("fish_pirate.gameHandler.leaveTable", null, null)
+                }
+                ,
+                0 == this.m_EnergyVal ? this.m_MsgCallback() : this.msgWindow.active = !0)
+            }
+            ,
+            e.prototype.onHelpBtnClicked = function() {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                this.helpPageNode.getComponent(C.default).setup()
+            }
+            ,
+            e.prototype.onSettingBtnClicked = function() {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                this.settingPageNode.active = !0
+            }
+            ,
+            e.prototype.onMsgBtnClicked = function(t, e) {
+                y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE),
+                "OK" == e && this.m_MsgCallback(),
+                this.msgWindow.active = !1
+            }
+            ,
+            e.prototype.onMouseDown = function(t) {
+                if (cc.sys.MOBILE_BROWSER == cc.sys.platform && cc.screen.autoFullScreen(document.getElementById("gameCanvas"), function() {}),
+                this.m_bRoomPanelOpened = this.m_bSystemPanelOpened = !1,
+                this.hookTip.opacity = 0,
+                this.m_FireMode == o.CM_LOCK_ANGLE)
+                    return this.m_LockedPos = t.getLocation().sub(cc.v2(640, 360)),
+                    void s.default.sm_Instance.setLockAngle(!0, this.m_LockedPos);
+                if (-1 == this.m_CurrTouchID && !(this.m_bFireLock || r.default.sm_Instance.m_bExitLock || this.m_ManualTick > 0))
+                    if (this.m_ManualTick = r.default.sm_Instance.manualFireTick,
+                    this.m_CurrTouchID = t.getID(),
+                    r.WeaponType.WEAPON_HOOK == this.getSelfPlayer().getWeaponType())
+                        this.m_LockedPos = cc.Vec2.ZERO,
+                        this.doFireRequest();
+                    else
+                        switch (this.m_FireMode) {
+                        case o.CM_IDLE:
+                            this.m_FireMode = o.CM_FIRE_MANUAL,
+                            this.m_FireTick = this.m_BulletFireDur,
+                            this.m_LockedPos = t.getLocation().sub(cc.v2(640, 360));
+                            break;
+                        case o.CM_LOCK_TARGET:
+                            y.default.sm_Instance.playSE(y.default.sm_Instance.buttonSE);
+                            var e = s.default.sm_Instance.getFishIdByPos(t.getLocation().sub(cc.v2(640, 360)));
+                            s.default.sm_Instance.setLockedFishID(r.default.sm_Instance.m_TablePos, e, !0, !0);
+                            break;
+                        case o.CM_LOCK_SETTING:
+                        case o.CM_LOCK_SETTING_INTERRUPT:
+                            e = s.default.sm_Instance.getFishIdByPos(t.getLocation().sub(cc.v2(640, 360))),
+                            Number.isFinite(e) && (s.default.sm_Instance.setLockedFishID(r.default.sm_Instance.m_TablePos, e, !0),
+                            this.m_FireMode = o.CM_LOCK_SETTING_INTERRUPT)
+                        }
+            }
+            ,
+            e.prototype.onMouseMove = function(t) {
+                if (t.getID() == this.m_CurrTouchID && !this.m_bFireLock)
+                    switch (this.m_FireMode) {
+                    case o.CM_FIRE_MANUAL:
+                        this.m_LockedPos = t.getLocation().sub(cc.v2(640, 360))
+                    }
+            }
+            ,
+            e.prototype.onMouseUp = function() {
+                this.m_CurrTouchID = -1,
+                o.CM_FIRE_MANUAL == this.m_FireMode && (this.m_FireMode = o.CM_IDLE)
+            }
+            ,
+            e.prototype.setupAutoFire = function(t, e, n, i, a) {
+                var l = this.getSelfPlayer();
+                if (r.default.sm_Instance.m_Cash - l.getBet() * (this.torpedoBtnEffect.active ? 10 : 1) < -Number.EPSILON)
+                    return this.m_FireMode = o.CM_IDLE,
+                    s.default.sm_Instance.setLockAngle(!1, cc.Vec2.ZERO),
+                    this.lockBtnEffect.active = !1,
+                    s.default.sm_Instance.clearManualLock(),
+                    this.autoBtnEffect.active = !1,
+                    void c.default.sm_Instance.showErrorMsg(b.default.Instance.GetText("errorCode_4"));
+                this.m_LockedType = __spreadArrays(t),
+                this.m_bAutoEnergy = e,
+                this.m_bHasBetLimit = n,
+                this.m_BetLimit = i,
+                this.m_FireMode = a ? o.CM_LOCK_ANGLE : o.CM_LOCK_SETTING,
+                s.default.sm_Instance.setLockAngle(!1, cc.Vec2.ZERO),
+                a && (this.m_LockedPos = cc.v2(Number.MAX_VALUE, Number.MAX_VALUE)),
+                this.lockBtnEffect.active = !1,
+                s.default.sm_Instance.clearManualLock(),
+                this.autoBtnEffect.active = !0
+            }
+            ,
+            e.prototype.clearAutoFireState = function() {
+                this.m_FireMode = o.CM_IDLE,
+                this.autoBtnEffect.active = !1,
+                s.default.sm_Instance.clearLockState(r.default.sm_Instance.m_TablePos)
+            }
+            ,
+            e.prototype.getSelfPlayer = function() {
+                return this.getValidPlayer(r.default.sm_Instance.m_TablePos - 1)
+            }
+            ,
+            e.prototype.doFireRequest = function(t) {
+                void 0 === t && (t = !0);
+                var e = this.getSelfPlayer();
+                if (t) {
+                    var n = this.getSelfPlayer();
+                    if (r.default.sm_Instance.m_Cash - n.calculateTotalCashOffset() - e.getBet() * (this.torpedoBtnEffect.active ? 10 : 1) < -Number.EPSILON)
+                        return this.m_FireMode = o.CM_IDLE,
+                        this.lockBtnEffect.active = !1,
+                        s.default.sm_Instance.clearManualLock(),
+                        this.autoBtnEffect.active = !1,
+                        void c.default.sm_Instance.showErrorMsg(b.default.Instance.GetText("errorCode_4"))
+                }
+                if (!this.m_bFireLock && (r.WeaponType.WEAPON_HOOK == e.getWeaponType() && (this.m_Timeout = 0,
+                this.m_bFireLock = !0),
+                !r.default.sm_Instance.m_bExitLock)) {
+                    var a = (this.m_bFireLock ? cc.Vec2.ZERO : this.m_LockedPos).sub(e.getWeaponAnchorPos()).normalize()
+                      , l = new function() {
+                        this.betLevel = 0,
+                        this.bulletKind = 0,
+                        this.lockFishId = 0,
+                        this.fortAngle = 0
+                    }
+                    ;
+                    switch (l.betLevel = e.m_BetLevel + 1,
+                    e.getWeaponType()) {
+                    case r.WeaponType.WEAPON_NORMAL_1:
+                    case r.WeaponType.WEAPON_NORMAL_2:
+                    case r.WeaponType.WEAPON_NORMAL_3:
+                        l.bulletKind = 1;
+                        break;
+                    case r.WeaponType.WEAPON_TORPEDO:
+                        l.bulletKind = 2;
+                        break;
+                    default:
+                        l.bulletKind = 3
+                    }
+                    l.lockFishId = this.m_bFireLock ? -1 : s.default.sm_Instance.getLockedFishID(r.default.sm_Instance.m_TablePos),
+                    l.fortAngle = 180 * Math.atan2(a.y, a.x) / Math.PI,
+                    r.default.sm_Instance.m_IdleTick = 0,
+                    i.default.sm_Instance.request("fish_pirate.gameHandler.bet", l, null),
+                    r.default.sm_Instance.logSpin && (r.default.sm_Instance.logSpin = !1,
+                    window.sendlog(7, window.get_log_step_time(6)))
+                }
+            }
+            ,
+            e.prototype.popFish = function(t, e, n) {
+                for (var o = e ? t.appearBossData : t.appearFishData, i = 0; i < o.length; ++i) {
+                    var r = o[i];
+                    0 != r.fishDataId && s.default.sm_Instance.popFish(r.id, r.pathId, r.fishDataId, 0, n)
+                }
+            }
+            ,
+            e.prototype.shiftPlayerToType = function(t, e) {
+                if (t == this.m_PlayerTypes[e])
+                    return this.playerNodeList[e].getComponent(t);
+                var n = this.getValidPlayer(e)
+                  , o = this.playerNodeList[e].addComponent(t);
+                return o.clone(n),
+                n._destroyImmediate(),
+                this.m_PlayerTypes[e] = t,
+                o
+            }
+            ,
+            e.prototype.getValidPlayer = function(t) {
+                for (var e = this.playerNodeList[t].getComponents(this.m_PlayerTypes[t]), n = 0; n < e.length; ++n)
+                    if (e[n].isValid)
+                        return e[n];
+                return null
+            }
+            ,
+            e.prototype.updateBG = function() {
+                this.bgNode.children[0].destroy(),
+                null == this.m_NextBG ? this.bgNode.addChild(cc.instantiate(this.bgList[r.default.sm_Instance.m_BGId - 1])) : (this.m_NextBG.removeFromParent(!1),
+                this.bgNode.addChild(this.m_NextBG),
+                this.m_NextBG.scale = 1,
+                this.m_NextBG.position = cc.Vec2.ZERO,
+                this.m_NextBG = null)
+            }
+            ,
+            e.prototype.updateMap = function() {
+                var t = this;
+                if (this.m_bPlayMapAnime) {
+                    y.default.sm_Instance.playSE(y.default.sm_Instance.mapCompleteSE),
+                    this.mapPieces[this.mapPieces.length - 1].node.opacity = 255;
+                    var e = this.mapAnime.play();
+                    this.m_bPlayMapAnime = !1,
+                    this.scheduleOnce(function() {
+                        for (var e = 0; e < t.mapPieces.length; ++e)
+                            t.mapPieces[e].node.opacity = 0;
+                        t.mapPieces[0].node.parent.opacity = 255
+                    }, e.duration)
+                } else {
+                    for (var n = 0; n < this.mapPieces.length; ++n)
+                        this.mapPieces[n].node.opacity = n < r.default.sm_Instance.m_MapCount ? 255 : 0;
+                    this.mapPieces[0].node.parent.opacity = 255
+                }
+            }
+            ,
+            e.prototype.updateBonusItem = function() {
+                for (var t = 0; t < this.bonusItemCount.length; ++t)
+                    this.m_BonusDisplayItemCount[t] = this.m_BonusItemCount[t];
+                this.m_BonusItemTick = 0
+            }
+            ,
+            e.prototype.checkAutoBetLimitReached = function() {
+                return !!(this.m_bHasBetLimit && (this.m_BetLimit -= 1,
+                this.m_BetLimit <= 0)) && (this.m_BetLimit = 0,
+                this.clearAutoFireState(),
+                !0)
+            }
+            ,
+            e.prototype.getEnergyProgress = function() {
+                var t = this.getSelfPlayer().getBet() * r.default.sm_Instance.energyBase;
+                return Math.min(this.m_EnergyVal / t, 1)
+            }
+            ,
+            e.prototype.setBonusCash = function(t) {
+                this.bonusNum.string = r.default.formatNumber((t - this.calculateTotalBonusCashOffset()) * r.default.sm_Instance.m_CashScale),
+                this.m_ServerBonusCash = t
+            }
+            ,
+            e.prototype.pushBonusCashOffset = function(t) {
+                var e = this.m_BonusCashSerial;
+                return this.m_BonusCashOffset.set(e, -t),
+                ++this.m_BonusCashSerial,
+                e
+            }
+            ,
+            e.prototype.popBonusCashOffset = function(t) {
+                cc.isValid(this.m_BonusCashOffset) && (this.m_BonusCashOffset.delete(t),
+                this.bonusNum.string = r.default.formatNumber((this.m_ServerBonusCash - this.calculateTotalBonusCashOffset()) * r.default.sm_Instance.m_CashScale))
+            }
+            ,
+            e.prototype.clearBonusCashOffset = function() {
+                this.m_BonusCashOffset = new Map,
+                this.m_BonusCashSerial = 0,
+                this.m_ServerBonusCash = 0
+            }
+            ,
+            e.prototype.calculateTotalBonusCashOffset = function() {
+                var t = 0;
+                return this.m_BonusCashOffset.forEach(function(e) {
+                    return t += e
+                }),
+                t
+            }
+            ,
+            e.sm_Instance = null,
+            __decorate([S(cc.Node)], e.prototype, "playerNodeList", void 0),
+            __decorate([S()], e.prototype, "roomPanelPos", void 0),
+            __decorate([S(cc.Node)], e.prototype, "roomPanel", void 0),
+            __decorate([S(cc.Node)], e.prototype, "roomButtons", void 0),
+            __decorate([S(cc.Node)], e.prototype, "roomFrame", void 0),
+            __decorate([S()], e.prototype, "roomSwitchWait", void 0),
+            __decorate([S()], e.prototype, "roomButtonLock", void 0),
+            __decorate([S(cc.Prefab)], e.prototype, "bgList", void 0),
+            __decorate([S(cc.Node)], e.prototype, "bgNode", void 0),
+            __decorate([S(cc.Animation)], e.prototype, "mapAnime", void 0),
+            __decorate([S(cc.Sprite)], e.prototype, "mapPieces", void 0),
+            __decorate([S(cc.Label)], e.prototype, "bonusItemCount", void 0),
+            __decorate([S(cc.Label)], e.prototype, "bonusNum", void 0),
+            __decorate([S(cc.SpriteFrame)], e.prototype, "bagIcon", void 0),
+            __decorate([S(cc.SpriteFrame)], e.prototype, "dropIcon", void 0),
+            __decorate([S()], e.prototype, "systemPanelPos", void 0),
+            __decorate([S(cc.Node)], e.prototype, "systemPanel", void 0),
+            __decorate([S(cc.Rect)], e.prototype, "winWheelRegion", void 0),
+            __decorate([S(cc.Label)], e.prototype, "wagersID", void 0),
+            __decorate([S(cc.Node)], e.prototype, "energyMask", void 0),
+            __decorate([S(cc.Node)], e.prototype, "energyButton", void 0),
+            __decorate([S(cc.Node)], e.prototype, "energyAnimeItems", void 0),
+            __decorate([S(cc.Animation)], e.prototype, "energyAnime", void 0),
+            __decorate([S(cc.Sprite)], e.prototype, "lockBtn", void 0),
+            __decorate([S(cc.Node)], e.prototype, "lockBtnEffect", void 0),
+            __decorate([S(cc.Sprite)], e.prototype, "torpedoBtn", void 0),
+            __decorate([S(cc.Node)], e.prototype, "torpedoBtnEffect", void 0),
+            __decorate([S(cc.Label)], e.prototype, "torpedoCost", void 0),
+            __decorate([S(cc.Node)], e.prototype, "torpedoNameLabel", void 0),
+            __decorate([S(cc.Sprite)], e.prototype, "autoBtn", void 0),
+            __decorate([S(cc.Node)], e.prototype, "autoBtnEffect", void 0),
+            __decorate([S(m.default)], e.prototype, "autoPage", void 0),
+            __decorate([S(cc.Node)], e.prototype, "helpPageNode", void 0),
+            __decorate([S(cc.Node)], e.prototype, "settingPageNode", void 0),
+            __decorate([S(cc.Node)], e.prototype, "eventTipNode", void 0),
+            __decorate([S(cc.Label)], e.prototype, "eventTipTime", void 0),
+            __decorate([S(cc.Node)], e.prototype, "testSign", void 0),
+            __decorate([S(cc.Label)], e.prototype, "version", void 0),
+            __decorate([S(cc.Node)], e.prototype, "hookTip", void 0),
+            __decorate([S(cc.Node)], e.prototype, "msgWindow", void 0),
+            __decorate([S(cc.Node)], e.prototype, "fadeMask", void 0),
+            n = __decorate([w], e)
+        }(cc.Component);
+        n.default = T,
+        cc._RF.pop()
+    }
